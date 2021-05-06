@@ -1,0 +1,25 @@
+{
+  "chartData": {
+    "nodes": [],
+    "links": []
+  },
+  "defaults": {
+    "force": {
+      "chargeStrength": -100,
+      "linkDistance": 20
+    },
+    "link": {
+      "colour": "#cccccc",
+      "width": 2
+    },
+    "node": {
+      "fill": "#ee2222",
+      "radius": 5,
+      "stroke": {
+        "colour": "#ffffff",
+        "width": 1.5
+      }
+    }
+  },
+  "selector": "#sinkVis"
+}
