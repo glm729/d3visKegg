@@ -38,5 +38,6 @@ async function unzip(data) {
 // Initialise the view (create all necessary data)
 function init(data) {
   for (let k in data) API.createData(k, data[k]);
+  API.createData("pingSimulation", true);  // Generate the chart on load
   return;
 };

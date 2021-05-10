@@ -1,9 +1,9 @@
 // Cell for running the force-directed graph simulation
 
 
-// Initialise the data to use
+// Initialise the defaults to use (chartData initialised empty)
 let _data = {
-  chartData: API.getData("_chart_data").resurrect(),
+  chartData: {nodes: [], links: []},
   defaults: {
     force: {
       chargeStrength: -100,
@@ -25,18 +25,8 @@ let _data = {
   selector: "#sinkVis",
 };
 
-// Generate the chart
-let chart = generateChart(_data);
-
-// API.createData("_chart", chart);
-// ^ Prototype can't be set by the CI controller, so the chart cannot be passed
-//   around.  Possibly try attaching to the window?  Security concern?
-
-// Run with the current data
-chart.update({
-  nodes: _data.chartData.nodes,
-  links: _data.chartData.links
-});
+// Generate the chart in the window
+window._chart = generateChart(_data);
 
 
 // -- Function definitions -- //
@@ -62,12 +52,10 @@ function generateChart(_data) {
   let simulation = d3.forceSimulation()
       .force(
         "charge",
-        d3.forceManyBody().strength(def.force.chargeStrength)
-      )
+        d3.forceManyBody().strength(def.force.chargeStrength))
       .force(
         "link",
-        d3.forceLink().id(d => d.id).distance(def.force.linkDistance)
-      )
+        d3.forceLink().id(d => d.id).distance(def.force.linkDistance))
       .force("x", d3.forceX())
       .force("y", d3.forceY())
       .on("tick", tickFunction);
@@ -128,7 +116,7 @@ function generateChart(_data) {
 // Simulation -- node drag function
 function drag(sim) {
   function dragStart(event, d) {
-    if (!event.active) sim.alphaTarget(0.3).restart();  // Tune this
+    if (!event.active) sim.alphaTarget(0.3).restart();
     d.fx = d.x;
     d.fy = d.y;
   };
