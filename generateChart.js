@@ -1,9 +1,12 @@
-// Cell for running the force-directed graph simulation
+// Cell for generating the force-directed graph simulation
 
 
 // Initialise the defaults to use (chartData initialised empty)
 let _data = {
-  chartData: {nodes: [], links: []},
+  chartData: {
+    nodes: [],
+    links: []
+  },
   defaults: {
     force: {
       chargeStrength: -100,
@@ -12,7 +15,7 @@ let _data = {
     link: {
       colour: "#cccccc",
       width: 2,
-      opacity: 0.33,
+      opacity: 0.67,
     },
     node: {
       fill: "#ee2222",
@@ -156,22 +159,19 @@ function generateChart(_data) {
         let c1 = idxLink[`${b.id}|${a.id}`];
         return (c0 || c1);
       };
-      function nodeMouseOver(d, i) {
-        node
-          .attr(
-            "fill",
-            function(o, j) {
-              if (isConnected(i, o) || i === o) { return "blue"; }
-              return nodeFill(o, j);
-            })
-          .attr(
-            "opacity",
-            function(o, j) {
-              if (isConnected(i, o) || i === o) { return 1; }
-              return 0.15;
-            });
+      function nodeMouseOverFill(o, j, d) {
+        if (isConnected(d, o) || d === o) { return "blue"; }
+        return nodeFill(o, j);
       };
-      function nodeMouseOut(d, i) {
+      function nodeMouseOverOpacity(o, j, d) {
+        if (isConnected(d, o) || d === o) { return 1; }
+        return 0.15;
+      };
+      function nodeMouseOver(e, d) {
+        node.attr("fill", (o, j) => nodeMouseOverFill(o, j, d))
+            .attr("opacity", (o, j) => nodeMouseOverOpacity(o, j, d));
+      };
+      function nodeMouseOut(e, d) {
         node.attr("stroke", nodeStroke)
             .attr("stroke-width", nodeStrokeWidth)
             .attr("fill", nodeFill)
