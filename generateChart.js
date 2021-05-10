@@ -12,9 +12,11 @@ let _data = {
     link: {
       colour: "#cccccc",
       width: 2,
+      opacity: 0.33,
     },
     node: {
       fill: "#ee2222",
+      opacity: 1,
       radius: 5,
       stroke: {
         colour: "#ffffff",
@@ -64,12 +66,14 @@ function generateChart(_data) {
   let link = main_group.append("g")
       .attr("stroke", linkColour)
       .attr("stroke-width", linkWidth)
+      .attr("opacity", linkOpacity)
     .selectAll("line");
   let node = main_group.append("g")
       .attr("stroke", nodeStroke)
       .attr("stroke-width", nodeStrokeWidth)
       .attr("fill", nodeFill)
       .attr("r", nodeRadius)
+      .attr("opacity", nodeOpacity)
     .selectAll("circle");
   // Call zoom on the SVG
   svg.call(
@@ -88,10 +92,18 @@ function generateChart(_data) {
     if (d?.width === undefined) { return def.link.width; }
     return d.width;
   };
+  function linkOpacity(d, i) {
+    if (d?.opacity === undefined) { return def.link.opacity; }
+    return d.opacity;
+  };
   // Node attribute functions
   function nodeFill(d, i) {
     if (d?.fill === undefined) { return def.node.fill; }
     return d.fill;
+  };
+  function nodeOpacity(d, i) {
+    if (d?.opacity === undefined) { return def.node.opacity; }
+    return d.opacity;
   };
   function nodeRadius(d, i) {
     if (d?.radius === undefined) { return def.node.radius; }
@@ -122,6 +134,7 @@ function generateChart(_data) {
   // Return the custom DOM node
   return Object.assign(svg.node(), {
     update({nodes, links}) {
+      // Copy and overwrite data
       let old = new Map(node.data().map(d => [d.id, d]));
       nodes = nodes.map(d => Object.assign(old.get(d.id) || new Object(), d));
       links = links.map(d => Object.assign(new Object(), d));
@@ -134,6 +147,41 @@ function generateChart(_data) {
       link = link
         .data(links, d => [d.source, d.target])
         .join("line");
+      // Implement node mouseover and mouseout
+      let idxLink = new Object();
+      links.forEach(l => idxLink[`${l.source}|${l.target}`] = true);
+      node.on("mouseover", nodeMouseOver).on("mouseout", nodeMouseOut);
+      function isConnected(a, b) {
+        let c0 = idxLink[`${a.id}|${b.id}`];
+        let c1 = idxLink[`${b.id}|${a.id}`];
+        return (c0 || c1);
+      };
+      function nodeMouseOver(d, i) {
+        node
+          .attr(
+            "fill",
+            function(o, j) {
+              if (isConnected(i, o) || i === o) { return "blue"; }
+              return nodeFill(o, j);
+            })
+          .attr(
+            "opacity",
+            function(o, j) {
+              if (isConnected(i, o) || i === o) { return 1; }
+              return 0.15;
+            });
+      };
+      function nodeMouseOut(d, i) {
+        node.attr("stroke", nodeStroke)
+            .attr("stroke-width", nodeStrokeWidth)
+            .attr("fill", nodeFill)
+            .attr("r", nodeRadius)
+            .attr("opacity", nodeOpacity);
+        link.attr("stroke", linkColour)
+            .attr("stroke-width", linkWidth)
+            .attr("opacity", linkOpacity);
+      };
+      // Reset the simulation
       simulation.stop();
       simulation.nodes(nodes);
       simulation.force("link").links(links);
