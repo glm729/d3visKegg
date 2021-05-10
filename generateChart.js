@@ -34,6 +34,7 @@ window._chart = generateChart(_data);
 
 // Generate the force-directed graph node
 function generateChart(_data) {
+  // -- Main operations -- //
   // Assign defaults
   let data = _data.chartData;
   let def = _data.defaults;
@@ -61,16 +62,50 @@ function generateChart(_data) {
       .on("tick", tickFunction);
   // Create link and node groups
   let link = main_group.append("g")
-      .attr("stroke", def.link.colour)
-      .attr("stroke-width", def.link.width)
+      .attr("stroke", linkColour)
+      .attr("stroke-width", linkWidth)
     .selectAll("line");
   let node = main_group.append("g")
-      .attr("stroke", def.node.stroke.colour)
-      .attr("stroke-width", def.node.stroke.width)
-      .attr("fill", def.node.fill)
-      .attr("r", def.node.radius)
+      .attr("stroke", nodeStroke)
+      .attr("stroke-width", nodeStrokeWidth)
+      .attr("fill", nodeFill)
+      .attr("r", nodeRadius)
     .selectAll("circle");
-  // Define the simulation tick function
+  // Call zoom on the SVG
+  svg.call(
+    d3.zoom()
+      .extent([[0, 0], [width, height]])
+      .scaleExtent([1 / 2, 8])
+      .on("zoom", zoomFunction)
+  );
+  // -- Internal function definitions -- //
+  // Link attribute functions
+  function linkColour(d, i) {
+    if (d?.colour === undefined) { return def.link.colour; }
+    return d.colour;
+  };
+  function linkWidth(d, i) {
+    if (d?.width === undefined) { return def.link.width; }
+    return d.width;
+  };
+  // Node attribute functions
+  function nodeFill(d, i) {
+    if (d?.fill === undefined) { return def.node.fill; }
+    return d.fill;
+  };
+  function nodeRadius(d, i) {
+    if (d?.radius === undefined) { return def.node.radius; }
+    return d.radius;
+  };
+  function nodeStroke(d, i) {
+    if (d?.stroke === undefined) { return def.node.stroke.colour; }
+    return d.stroke;
+  };
+  function nodeStrokeWidth(d, i) {
+    if (d?.strokeWidth === undefined) { return def.node.stroke.width; }
+    return d.strokeWidth;
+  };
+  // Simulation tick function
   function tickFunction() {
     node.attr("cx", d => d.x)
         .attr("cy", d => d.y);
@@ -79,17 +114,11 @@ function generateChart(_data) {
         .attr("y1", d => d.source.y)
         .attr("y2", d => d.target.y);
   };
-  // Define the zoom function
+  // Zoom function
   function zoomFunction({transform}) {
     main_group.attr("transform", transform);
   };
-  // Call zoom on the SVG
-  svg.call(
-    d3.zoom()
-      .extent([[0, 0], [width, height]])
-      .scaleExtent([1 / 2, 8])
-      .on("zoom", zoomFunction)
-  );
+  // -- Return -- //
   // Return the custom DOM node
   return Object.assign(svg.node(), {
     update({nodes, links}) {
