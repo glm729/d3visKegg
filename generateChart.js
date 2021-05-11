@@ -74,8 +74,9 @@ function generateChart(_data) {
       .on("tick", tickFunction);
   // Create link and node groups
   let link = main_group.append("g").selectAll("line");
-  let node = main_group.append("g").selectAll("circle");
-  let text = main_group.append("g").selectAll("text");
+  let nodes_text = main_group.append("g");
+  let node = nodes_text.append("g").selectAll("circle")
+  let text = nodes_text.append("g").selectAll("text");
   // Call zoom on the SVG
   svg.call(
     d3.zoom()
@@ -143,11 +144,11 @@ function generateChart(_data) {
         .attr("y2", d => d.target.y);
     text.attr("transform", textTransform);
   };
+  // Text transform function
   function textTransform(d, i) {
-    let n = document.querySelector(`#_node${i}`);
-    if (n === null) { return null; }
-    let r = +n.getAttribute("r");
-    let off = {x: r + 2, y: (r / 2) - 1};
+    let r = +node._groups[0][i].getAttribute("r");
+    // ^ This is a bit of a hack, but it was the most proper way
+    let off = {x: r + 2, y: r / 2};
     return `translate(${d.x + off.x}, ${d.y + off.y})`;
   };
   // Zoom function
@@ -170,8 +171,7 @@ function generateChart(_data) {
           .attr("stroke-width", nodeStrokeWidth)
           .attr("fill", nodeFill)
           .attr("r", nodeRadius)
-          .attr("opacity", nodeOpacity)
-          .attr("id", (d, i) => `_node${i}`))
+          .attr("opacity", nodeOpacity))
         .call(drag(simulation));
       link = link
         .data(links, d => [d.source, d.target])
@@ -179,8 +179,7 @@ function generateChart(_data) {
           .attr("pointer-events", "none")
           .attr("stroke", linkColour)
           .attr("stroke-width", linkWidth)
-          .attr("opacity", linkOpacity)
-          .attr("id", linkId));
+          .attr("opacity", linkOpacity));
       text = text
         .data(nodes, d => d.id)
         .join(enter => enter.append("text")
@@ -188,8 +187,7 @@ function generateChart(_data) {
           .attr("pointer-events", "none")
           .attr("font-size", textFontSize)
           .attr("font-weight", textFontWeight)
-          .attr("visibility", textVisibility)
-          .attr("id", (d, i) => `_text${i}`));
+          .attr("visibility", textVisibility));
       // Implement node mouseover and mouseout
       let idxLink = new Object();
       links.forEach(l => idxLink[`${l.source}|${l.target}`] = true);
