@@ -15,7 +15,7 @@ let _data = {
     link: {
       colour: "#cccccc",
       width: 2,
-      opacity: 0.67,
+      opacity: 0.75,
     },
     node: {
       fill: "#ee2222",
@@ -66,18 +66,8 @@ function generateChart(_data) {
       .force("y", d3.forceY())
       .on("tick", tickFunction);
   // Create link and node groups
-  let link = main_group.append("g")
-      .attr("stroke", linkColour)
-      .attr("stroke-width", linkWidth)
-      .attr("opacity", linkOpacity)
-    .selectAll("line");
-  let node = main_group.append("g")
-      .attr("stroke", nodeStroke)
-      .attr("stroke-width", nodeStrokeWidth)
-      .attr("fill", nodeFill)
-      .attr("r", nodeRadius)
-      .attr("opacity", nodeOpacity)
-    .selectAll("circle");
+  let link = main_group.append("g").selectAll("line");
+  let node = main_group.append("g").selectAll("circle");
   // Call zoom on the SVG
   svg.call(
     d3.zoom()
@@ -144,12 +134,18 @@ function generateChart(_data) {
       node = node
         .data(nodes, d => d.id)
         .join(enter => enter.append("circle")
-          .attr("r", def.node.radius)
-          .attr("fill", def.node.fill))
+          .attr("stroke", nodeStroke)
+          .attr("stroke-width", nodeStrokeWidth)
+          .attr("fill", nodeFill)
+          .attr("r", nodeRadius)
+          .attr("opacity", nodeOpacity))
         .call(drag(simulation));
       link = link
         .data(links, d => [d.source, d.target])
-        .join("line");
+        .join(enter => enter.append("line")
+          .attr("stroke", linkColour)
+          .attr("stroke-width", linkWidth)
+          .attr("opacity", linkOpacity));
       // Implement node mouseover and mouseout
       let idxLink = new Object();
       links.forEach(l => idxLink[`${l.source}|${l.target}`] = true);
@@ -159,17 +155,30 @@ function generateChart(_data) {
         let c1 = idxLink[`${b.id}|${a.id}`];
         return (c0 || c1);
       };
-      function nodeMouseOverFill(o, j, d) {
+      function nodeMouseOverNodeFill(o, j, d) {
         if (isConnected(d, o) || d === o) { return "blue"; }
         return nodeFill(o, j);
       };
-      function nodeMouseOverOpacity(o, j, d) {
-        if (isConnected(d, o) || d === o) { return 1; }
-        return 0.15;
+      function nodeMouseOverNodeOpacity(o, j, d) {
+        let n0 = nodeOpacity(o, j);
+        if (isConnected(d, o) || d === o) { return n0; }
+        return 0.15 * n0;
+      };
+      function nodeMouseOverLinkColour(o, j, d) { return linkColour(o, j); }
+      function nodeMouseOverLinkWidth(o, j, d) { return linkWidth(o, j); }
+      // ^ These two are currently effectively dummy functions, but are left
+      //   here to demonstrate potential control.
+      function nodeMouseOverLinkOpacity(o, j, d) {
+        let l0 = linkOpacity(o, j);
+        let c0 = (o.source.id === d.id) || (o.target.id === d.id);
+        if (c0) { return l0; }
+        return 0.15 * l0;
       };
       function nodeMouseOver(e, d) {
-        node.attr("fill", (o, j) => nodeMouseOverFill(o, j, d))
-            .attr("opacity", (o, j) => nodeMouseOverOpacity(o, j, d));
+        node.attr("fill", (o, j) => nodeMouseOverNodeFill(o, j, d))
+            .attr("opacity", (o, j) => nodeMouseOverNodeOpacity(o, j, d));
+        link.attr("stroke", (o, j) => nodeMouseOverLinkColour(o, j, d))
+            .attr("opacity", (o, j) => nodeMouseOverLinkOpacity(o, j, d));
       };
       function nodeMouseOut(e, d) {
         node.attr("stroke", nodeStroke)
