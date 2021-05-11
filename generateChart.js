@@ -18,13 +18,20 @@ let _data = {
       opacity: 0.75,
     },
     node: {
-      fill: "#ee2222",
+      fill: "#2222bb",
       opacity: 1,
       radius: 5,
       stroke: {
         colour: "#ffffff",
         width: 1.5,
       },
+    },
+    text: {
+      font: {
+        size: "5pt",
+        weight: "normal",
+      },
+      visibility: "hidden",
     },
   },
   selector: "#sinkVis",
@@ -68,6 +75,7 @@ function generateChart(_data) {
   // Create link and node groups
   let link = main_group.append("g").selectAll("line");
   let node = main_group.append("g").selectAll("circle");
+  let text = main_group.append("g").selectAll("text");
   // Call zoom on the SVG
   svg.call(
     d3.zoom()
@@ -88,6 +96,9 @@ function generateChart(_data) {
   function linkOpacity(d, i) {
     if (d?.opacity === undefined) { return def.link.opacity; }
     return d.opacity;
+  };
+  function linkId(d, i) {
+    return `_link_s${d.source.id}_t${d.target.id}`;
   };
   // Node attribute functions
   function nodeFill(d, i) {
@@ -110,14 +121,34 @@ function generateChart(_data) {
     if (d?.strokeWidth === undefined) { return def.node.stroke.width; }
     return d.strokeWidth;
   };
+  // Text attribute functions
+  function textFontSize(d, i) {
+    if (d?.fontSize === undefined) { return def.text.font.size; }
+    return d.fontSize;
+  };
+  function textFontWeight(d, i) {
+    if (d?.fontWeight === undefined) { return def.text.font.weight; }
+    return d.fontWeight;
+  };
+  function textVisibility(d, i) {
+    if (d?.visibility === undefined) { return def.text.visibility; }
+    return d.visibility;
+  };
   // Simulation tick function
   function tickFunction() {
-    node.attr("cx", d => d.x)
-        .attr("cy", d => d.y);
+    node.attr("transform", d => `translate(${d.x}, ${d.y})`);
     link.attr("x1", d => d.source.x)
         .attr("x2", d => d.target.x)
         .attr("y1", d => d.source.y)
         .attr("y2", d => d.target.y);
+    text.attr("transform", textTransform);
+  };
+  function textTransform(d, i) {
+    let n = document.querySelector(`#_node${i}`);
+    if (n === null) { return null; }
+    let r = +n.getAttribute("r");
+    let off = {x: r + 2, y: (r / 2) - 1};
+    return `translate(${d.x + off.x}, ${d.y + off.y})`;
   };
   // Zoom function
   function zoomFunction({transform}) {
@@ -139,7 +170,8 @@ function generateChart(_data) {
           .attr("stroke-width", nodeStrokeWidth)
           .attr("fill", nodeFill)
           .attr("r", nodeRadius)
-          .attr("opacity", nodeOpacity))
+          .attr("opacity", nodeOpacity)
+          .attr("id", (d, i) => `_node${i}`))
         .call(drag(simulation));
       link = link
         .data(links, d => [d.source, d.target])
@@ -147,7 +179,17 @@ function generateChart(_data) {
           .attr("pointer-events", "none")
           .attr("stroke", linkColour)
           .attr("stroke-width", linkWidth)
-          .attr("opacity", linkOpacity));
+          .attr("opacity", linkOpacity)
+          .attr("id", linkId));
+      text = text
+        .data(nodes, d => d.id)
+        .join(enter => enter.append("text")
+          .text(d => d.id)
+          .attr("pointer-events", "none")
+          .attr("font-size", textFontSize)
+          .attr("font-weight", textFontWeight)
+          .attr("visibility", textVisibility)
+          .attr("id", (d, i) => `_text${i}`));
       // Implement node mouseover and mouseout
       let idxLink = new Object();
       links.forEach(l => idxLink[`${l.source}|${l.target}`] = true);
@@ -158,7 +200,7 @@ function generateChart(_data) {
         return (c0 || c1);
       };
       function nmoNodeFill(o, j, d) {
-        if (isConnected(d, o) || d === o) { return "blue"; }
+        if (isConnected(d, o) || d === o) { return "#ee2222"; }
         return nodeFill(o, j);
       };
       function nmoNodeOpacity(o, j, d) {
@@ -179,6 +221,16 @@ function generateChart(_data) {
         if (c0) { return l0; }
         return 0.15 * l0;
       };
+      function nmoTextFontSize(o, j, d) { return textFontSize(o, j); }
+      // ^ This one's also a dummy at this stage.
+      function nmoTextFontWeight(o, j, d) {
+        if (d === o) { return "bold"; }
+        return textFontWeight(o, j);
+      };
+      function nmoTextVisibility(o, j, d) {
+        if (isConnected(d, o) || d === o) { return "visible"; }
+        return textVisibility(o, j);
+      };
       function nodeMouseOver(e, d) {
         node.attr("stroke", (o, j) => nmoNodeStroke(o, j, d))
             .attr("stroke-width", (o, j) => nmoNodeStrokeWidth(o, j, d))
@@ -188,6 +240,9 @@ function generateChart(_data) {
         link.attr("stroke", (o, j) => nmoLinkColour(o, j, d))
             .attr("stroke-width", (o, j) => nmoLinkWidth(o, j, d))
             .attr("opacity", (o, j) => nmoLinkOpacity(o, j, d));
+        text.attr("font-size", (o, j) => nmoTextFontSize(o, j, d))
+            .attr("font-weight", (o, j) => nmoTextFontWeight(o, j, d))
+            .attr("visibility", (o, j) => nmoTextVisibility(o, j, d));
       };
       function nodeMouseOut(e, d) {
         node.attr("stroke", nodeStroke)
@@ -198,6 +253,9 @@ function generateChart(_data) {
         link.attr("stroke", linkColour)
             .attr("stroke-width", linkWidth)
             .attr("opacity", linkOpacity);
+        text.attr("font-size", textFontSize)
+            .attr("font-weight", textFontWeight)
+            .attr("visibility", textVisibility);
       };
       // Reset the simulation
       simulation.stop();
