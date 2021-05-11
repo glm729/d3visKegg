@@ -198,7 +198,8 @@ function generateChart(_data) {
         return (c0 || c1);
       };
       function nmoNodeFill(o, j, d) {
-        if (isConnected(d, o) || d === o) { return "#ee2222"; }
+        if (d === o) { return "red"; }
+        if (isConnected(d, o)) { return "darkorange"; }
         return nodeFill(o, j);
       };
       function nmoNodeOpacity(o, j, d) {
@@ -206,10 +207,18 @@ function generateChart(_data) {
         if (isConnected(d, o) || d === o) { return n0; }
         return 0.15 * n0;
       };
-      function nmoNodeStroke(o, j, d) { return nodeStroke(o, j); }
+      function nmoNodeStroke(o, j, d) {
+        if (isConnected(d, o) || d === o) { return "royalblue"; }
+        return nodeStroke(o, j);
+      };
       function nmoNodeStrokeWidth(o, j, d) { return nodeStrokeWidth(o, j); }
       function nmoNodeRadius(o, j, d) { return nodeRadius(o, j); }
-      function nmoLinkColour(o, j, d) { return linkColour(o, j); }
+      function nmoLinkColour(o, j, d) {
+        if (o.source.id === d.id || o.target.id === d.id) {
+          return "royalblue";
+        };
+        return linkColour(o, j);
+      };
       function nmoLinkWidth(o, j, d) { return linkWidth(o, j); }
       // ^ The above five are currently effectively dummy functions, but are
       //   left here to demonstrate potential control.
