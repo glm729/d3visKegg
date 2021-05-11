@@ -134,6 +134,7 @@ function generateChart(_data) {
       node = node
         .data(nodes, d => d.id)
         .join(enter => enter.append("circle")
+          .attr("cursor", "grab")
           .attr("stroke", nodeStroke)
           .attr("stroke-width", nodeStrokeWidth)
           .attr("fill", nodeFill)
@@ -143,6 +144,7 @@ function generateChart(_data) {
       link = link
         .data(links, d => [d.source, d.target])
         .join(enter => enter.append("line")
+          .attr("pointer-events", "none")
           .attr("stroke", linkColour)
           .attr("stroke-width", linkWidth)
           .attr("opacity", linkOpacity));
@@ -155,30 +157,37 @@ function generateChart(_data) {
         let c1 = idxLink[`${b.id}|${a.id}`];
         return (c0 || c1);
       };
-      function nodeMouseOverNodeFill(o, j, d) {
+      function nmoNodeFill(o, j, d) {
         if (isConnected(d, o) || d === o) { return "blue"; }
         return nodeFill(o, j);
       };
-      function nodeMouseOverNodeOpacity(o, j, d) {
+      function nmoNodeOpacity(o, j, d) {
         let n0 = nodeOpacity(o, j);
         if (isConnected(d, o) || d === o) { return n0; }
         return 0.15 * n0;
       };
-      function nodeMouseOverLinkColour(o, j, d) { return linkColour(o, j); }
-      function nodeMouseOverLinkWidth(o, j, d) { return linkWidth(o, j); }
-      // ^ These two are currently effectively dummy functions, but are left
-      //   here to demonstrate potential control.
-      function nodeMouseOverLinkOpacity(o, j, d) {
+      function nmoNodeStroke(o, j, d) { return nodeStroke(o, j); }
+      function nmoNodeStrokeWidth(o, j, d) { return nodeStrokeWidth(o, j); }
+      function nmoNodeRadius(o, j, d) { return nodeRadius(o, j); }
+      function nmoLinkColour(o, j, d) { return linkColour(o, j); }
+      function nmoLinkWidth(o, j, d) { return linkWidth(o, j); }
+      // ^ The above five are currently effectively dummy functions, but are
+      //   left here to demonstrate potential control.
+      function nmoLinkOpacity(o, j, d) {
         let l0 = linkOpacity(o, j);
         let c0 = (o.source.id === d.id) || (o.target.id === d.id);
         if (c0) { return l0; }
         return 0.15 * l0;
       };
       function nodeMouseOver(e, d) {
-        node.attr("fill", (o, j) => nodeMouseOverNodeFill(o, j, d))
-            .attr("opacity", (o, j) => nodeMouseOverNodeOpacity(o, j, d));
-        link.attr("stroke", (o, j) => nodeMouseOverLinkColour(o, j, d))
-            .attr("opacity", (o, j) => nodeMouseOverLinkOpacity(o, j, d));
+        node.attr("stroke", (o, j) => nmoNodeStroke(o, j, d))
+            .attr("stroke-width", (o, j) => nmoNodeStrokeWidth(o, j, d))
+            .attr("fill", (o, j) => nmoNodeFill(o, j, d))
+            .attr("r", (o, j) => nmoNodeRadius(o, j, d))
+            .attr("opacity", (o, j) => nmoNodeOpacity(o, j, d));
+        link.attr("stroke", (o, j) => nmoLinkColour(o, j, d))
+            .attr("stroke-width", (o, j) => nmoLinkWidth(o, j, d))
+            .attr("opacity", (o, j) => nmoLinkOpacity(o, j, d));
       };
       function nodeMouseOut(e, d) {
         node.attr("stroke", nodeStroke)
