@@ -3,6 +3,9 @@
 #### 10<sup>th</sup> of May, 2021
 
 
+![Current view example](./demoCurrent.png "Current view example")
+
+
 ## Overview
 
 This repository contains all scripts and Twig templates (HTML) used in a
