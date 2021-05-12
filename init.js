@@ -1,6 +1,9 @@
 // -- Operations -- //
 
 
+let fb = document.querySelector("#inputKeggIdFeedback");
+fb.innerHTML = "Please wait, loading attachments....";
+
 // Initialise CouchAttachments instance
 let couch = new CouchAttachments();
 
@@ -39,5 +42,6 @@ async function unzip(data) {
 function init(data) {
   for (let k in data) API.createData(k, data[k]);
   API.createData("pingSimulation", true);  // Generate the chart on load
+  fb.innerHTML = '';
   return;
 };

@@ -39,4 +39,5 @@ if (reac === undefined) {
     });
   };
   API.createData("_chart_data", {nodes: nodes, links: links});
+  API.createData("idVisCurrent", nodes);
 };

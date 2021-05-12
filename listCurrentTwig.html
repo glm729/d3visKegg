@@ -1,0 +1,27 @@
+<!-- Set styles to use in the Twig -->
+<style>
+.divTable {
+  display: table;
+}
+.divTableRow {
+  display: table-row;
+}
+.divTableHeader {
+  border: 1px solid #000;
+  font-weight: bold;
+}
+.divTableCell {
+  display: table-cell;
+  padding: 2px 4px;
+}
+.divTableHeader > .divTableCell:nth-child(1) {
+  min-width: 115px;
+}
+.divTable > .divTableRow:nth-child(even) {
+  background: #eee;
+}
+</style>
+<!-- Make the sink -->
+<div
+  id="sinkIdVis">
+</div>
