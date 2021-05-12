@@ -1,0 +1,54 @@
+<!doctype html>
+<html>
+  <head>
+    <title>D3 FDG:  KEGG Pathway or Module</title>
+    <meta charset="utf-8">
+    <link
+      rel="stylesheet"
+      href="./kpm.css">
+    <!-- Function definitions (can't get import/export working properly) -->
+    <script src="./src/functions.js"></script>
+    <!-- Packages -->
+    <script src="./src/pkg/d3.min.js"></script>
+    <script src="./src/pkg/jszip.min.js"></script>
+  </head>
+  <body onload="startup();">
+    <div id="enterId">
+      <div id="enterIdInput">
+        <label
+          for="inputKeggId"
+          class="inputTextLabel">
+          Enter KEGG Pathway or Module ID:
+        </label>
+        <input
+          id="inputKeggId"
+          class="inputText"
+          type="text"
+          pattern="(map|M)\d{5}">
+        </input>
+        <button
+          class="inputSubmitButton"
+          onclick="submitKeggId();">
+          Submit ID
+        </button>
+      </div>
+      <div
+        id="feedback"
+        class="feedback">
+      </div>
+    </div>
+    <div id="visualise" class="table">
+      <div class="tableRow">
+        <div id="svgContainer" class="tableCell">
+          <svg
+            id="fdg"
+            height="100%"
+            width="100%">
+          </svg>
+        </div>
+        <div id="idCurrentContainer" class="tableCell">
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

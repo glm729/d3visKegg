@@ -1,0 +1,63 @@
+#fdg {
+  border: 2px solid lightgrey;
+  height: 600px;
+  width: 600px;
+}
+
+#idCurrentContainer {
+  max-height: 600px;
+  overflow: scroll;
+}
+
+.feedback {
+  font-size: 9pt;
+  font-weight: bold;
+  min-height: 28px;
+  padding: 2px 4px;
+}
+
+.feedbackPositive {
+  color: green;
+}
+
+.feedbackNegative {
+  color: red;
+}
+
+.inputSubmitButton {
+  border-radius: 0px;
+  display: inline-block;
+}
+
+.inputText {
+  border: 1px solid darkgrey;
+  display: inline-block;
+  padding: 2px 4px;
+}
+
+.table {
+  display: table;
+  font-size: 9pt;
+}
+
+.tableCell {
+  display: table-cell;
+  padding: 2px 4px;
+  vertical-align: top;
+}
+
+.tableHeader {
+  font-weight: bold;
+}
+
+.tableRow {
+  display: table-row;
+}
+
+.table > .tableRow:nth-child(even) {
+  background-color: #eee;
+}
+
+.tableHeader > .tableCell:nth-child(1) {
+  min-width: 127px;
+}
