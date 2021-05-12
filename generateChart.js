@@ -81,9 +81,8 @@ function generateChart(_data) {
   svg.call(
     d3.zoom()
       .extent([[0, 0], [width, height]])
-      .scaleExtent([1 / 2, 8])
-      .on("zoom", zoomFunction)
-  );
+      .scaleExtent([1 / 4, 8])
+      .on("zoom", zoomFunction));
   // -- Internal function definitions -- //
   // Link attribute functions
   function linkColour(d, i) {
@@ -183,11 +182,16 @@ function generateChart(_data) {
       text = text
         .data(nodes, d => d.id)
         .join(enter => enter.append("text")
-          .text(d => d.id)
+          .text(nodeLabel)
           .attr("pointer-events", "none")
           .attr("font-size", textFontSize)
           .attr("font-weight", textFontWeight)
           .attr("visibility", textVisibility));
+      // Define the node label function
+      function nodeLabel(d, i) {
+        if (d?.label === undefined) { return d.id; }
+        return d.label;
+      };
       // Implement node mouseover and mouseout
       let idxLink = new Object();
       links.forEach(l => idxLink[`${l.source}|${l.target}`] = true);
