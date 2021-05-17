@@ -22,6 +22,23 @@ async function unzip(data) {
 
 
 /**
+ * Abstracted and generalised simulation function for defining a per-node
+ * visual attribute in the D3 force-directed graph.
+ * @param {Object} d Data for current iteration
+ * @param {Integer} i Index of current iteration
+ * @param {String} key Key at which to access the attribute
+ * @param {?} df Default value to return if attribute does not exist
+ * @return {?} Attribute value returned, either as the default or as the
+ * attribute provided in the current iteration of the data
+ */
+function attrDefault({data, idx, key, def}) {
+  if (data === undefined) { return; }
+  if (data[key] === undefined) { return def; }
+  return data[key];
+}
+
+
+/**
  * Helper function to generate a div element of class `table`, such that a div
  * table can be constructed.
  * @param {String} ihtml Optional innerHTML to apply upon generating the table
@@ -79,6 +96,117 @@ function divTableRow(ihtml) {
 
 
 /**
+ * Abstracted simulation function to define actions completed on drag.
+ * @param {Object} sim Simulation in which to operate
+ * @return {Object} Not exactly sure.  D3 artefact.
+ */
+function drag(sim) {
+  function dragStart(event, d) {
+    if (!event.active) { sim.alphaTarget(0.3).restart(); }
+    d.fx = d.x;
+    d.fy = d.y;
+  }
+  function dragging(event, d) {
+    d.fx = event.x;
+    d.fy = event.y;
+  }
+  function dragEnd(event, d) {
+    if (!event.active) { sim.alphaTarget(0); }
+    d.fx = null;
+    d.fy = null;
+  }
+  return d3.drag()
+    .on("start", dragStart)
+    .on("drag", dragging)
+    .on("end", dragEnd);
+}
+
+
+/**
+ * Helper function for determining whether two nodes in a graph are connected.
+ * Relies on the idxLink object.
+ * @param {Object} a Node a
+ * @param {Object} b Node b
+ * @param {Object} idxLink Specific-purpose object containing a value of `true`
+ * if nodes a and b are connected, or `undefined` otherwise
+ * @return {Boolean} Boolean value indicating whether nodes a and b are
+ * directly connected in the graph
+ */
+function isConnected(a, b, idxLink) {
+  let c0 = idxLink[`${a.id}|${b.id}`];
+  let c1 = idxLink[`${b.id}|${a.id}`];
+  return (c0 || c1);
+}
+
+
+/**
+ * This series defines the abstracted simulation functions for defining node
+ * mouseover changes.
+ * @param {Object} data Current iteration data
+ * @param {Integer} idx Current iteration index
+ * @param {Object} orig Origin node -- outer loop
+ * @param {?} def Default value to apply, if none available
+ * @param {Object} idxLink Object defining which node indices are linked in the
+ * graph
+ * @return {?} Current applicable value to use for visual components of graph,
+ * or the default value
+ */
+// Links
+function nmoLinkColour({data, idx, orig, def, idxLink}) {
+  if (data.source.id === orig.id || data.target.id === orig.id) {
+    return "royalblue";
+  }
+  return attrDefault({data: data, idx: idx, key: "colour", def: def});
+}
+function nmoLinkOpacity({data, idx, orig, def, idxLink}) {
+  let l0 = attrDefault({data: data, idx: idx, key: "opacity", def: def});
+  let c0 = (data.source.id === orig.id) || (data.target.id === orig.id);
+  if (c0) { return l0; }
+  return 0.15 * l0;
+}
+function nmoLinkWidth({data, idx, orig, def, idxLink}) {
+  return attrDefault({data: data, idx: idx, key: "strokeWidth", def: def});
+}
+// Nodes
+function nmoNodeFill({data, idx, orig, def, idxLink}) {
+  if (data === orig) { return "red"; }
+  if (isConnected(orig, data, idxLink)) { return "darkorange"; }
+  return attrDefault({data: data, idx: idx, key: "fill", def: def});
+}
+function nmoNodeOpacity({data, idx, orig, def, idxLink}) {
+  let n0 = attrDefault({data: data, idx: idx, key: "opacity", def: def});
+  if (isConnected(orig, data, idxLink) || data === orig) { return n0; }
+  return 0.15 * n0;
+}
+function nmoNodeRadius({data, idx, orig, def, idxLink}) {
+  return attrDefault({data: data, idx: idx, key: "radius", def: def});
+}
+function nmoNodeStroke({data, idx, orig, def, idxLink}) {
+  if (isConnected(orig, data, idxLink) || data === orig) {
+    return "royalblue";
+  }
+  return attrDefault({data: data, idx: idx, key: "stroke", def: def});
+}
+function nmoNodeStrokeWidth({data, idx, orig, def, idxLink}) {
+  return attrDefault({data: data, idx: idx,  key: "strokeWidth", def: def});
+}
+// Text
+function nmoTextFontSize({data, idx, orig, def, idxLink}) {
+  return attrDefault({data: data, idx: idx, key: "size", def: def});
+}
+function nmoTextFontWeight({data, idx, orig, def, idxLink}) {
+  if (data === orig) { return "bold"; }
+  return attrDefault({data: data, idx: idx, key: "weight", def: def});
+}
+function nmoTextVisibility({data, idx, orig, def, idxLink}) {
+  if (isConnected(orig, data, idxLink) || data === orig) {
+    return "visible";
+  }
+  return attrDefault({data: data, idx: idx, key: "visibility", def: def});
+}
+
+
+/**
  * Generate a D3 Force-Directed Graph, according to an input data object
  * containing three main components -- the initial chart data, the default or
  * fallback values, and the CSS selector to select the SVG.
@@ -126,77 +254,6 @@ function generateChart(_data) {
       .scaleExtent([1 / 4, 8])
       .on("zoom", zoomFunction));
   // -- Internal function definitions -- //
-  // Link attribute functions
-  function linkColour(d, i) {
-    if (d?.colour === undefined) { return def.link.colour; }
-    return d.colour;
-  }
-  function linkWidth(d, i) {
-    if (d?.width === undefined) { return def.link.width; }
-    return d.width;
-  }
-  function linkOpacity(d, i) {
-    if (d?.opacity === undefined) { return def.link.opacity; }
-    return d.opacity;
-  }
-  function linkId(d, i) {
-    return `_link_s${d.source.id}_t${d.target.id}`;
-  }
-  // Node attribute functions
-  function nodeFill(d, i) {
-    if (d?.fill === undefined) { return def.node.fill; }
-    return d.fill;
-  }
-  function nodeOpacity(d, i) {
-    if (d?.opacity === undefined) { return def.node.opacity; }
-    return d.opacity;
-  }
-  function nodeRadius(d, i) {
-    if (d?.radius === undefined) { return def.node.radius; }
-    return d.radius;
-  }
-  function nodeStroke(d, i) {
-    if (d?.stroke === undefined) { return def.node.stroke.colour; }
-    return d.stroke;
-  }
-  function nodeStrokeWidth(d, i) {
-    if (d?.strokeWidth === undefined) { return def.node.stroke.width; }
-    return d.strokeWidth;
-  }
-  // Text attribute functions
-  function textFontSize(d, i) {
-    if (d?.fontSize === undefined) { return def.text.font.size; }
-    return d.fontSize;
-  }
-  function textFontWeight(d, i) {
-    if (d?.fontWeight === undefined) { return def.text.font.weight; }
-    return d.fontWeight;
-  }
-  function textVisibility(d, i) {
-    if (d?.visibility === undefined) { return def.text.visibility; }
-    return d.visibility;
-  }
-  // Simulation drag function
-  function drag(sim) {
-    function dragStart(event, d) {
-      if (!event.active) { sim.alphaTarget(0.3).restart(); }
-      d.fx = d.x;
-      d.fy = d.y;
-    }
-    function dragging(event, d) {
-      d.fx = event.x;
-      d.fy = event.y;
-    }
-    function dragEnd(event, d) {
-      if (!event.active) { sim.alphaTarget(0); }
-      d.fx = null;
-      d.fy = null;
-    }
-    return d3.drag()
-      .on("start", dragStart)
-      .on("drag", dragging)
-      .on("end", dragEnd);
-  }
   // Simulation tick function
   function tickFunction() {
     node.attr("transform", d => `translate(${d.x}, ${d.y})`);
@@ -229,27 +286,104 @@ function generateChart(_data) {
         .data(nodes, d => d.id)
         .join(enter => enter.append("circle")
           .attr("cursor", "grab")
-          .attr("stroke", nodeStroke)
-          .attr("stroke-width", nodeStrokeWidth)
-          .attr("fill", nodeFill)
-          .attr("r", nodeRadius)
-          .attr("opacity", nodeOpacity))
+          .attr("stroke", (d, i) => {
+            return attrDefault({
+              data: d,
+              idx: i,
+              key: "stroke",
+              def: def.node.stroke.colour
+            });
+          })
+          .attr("stroke-width", (d, i) => {
+            return attrDefault({
+              data: d,
+              idx: i,
+              key: "strokeWidth",
+              def: def.node.stroke.width
+            });
+          })
+          .attr("fill", (d, i) => {
+            return attrDefault({
+              data: d,
+              idx: i,
+              key: "fill",
+              def: def.node.fill
+            });
+          })
+          .attr("r", (d, i) => {
+            return attrDefault({
+              data: d,
+              idx: i,
+              key: "radius",
+              def: def.node.radius
+            });
+          })
+          .attr("opacity", (d, i) => {
+            return attrDefault({
+              data: d,
+              idx: i,
+              key: "opacity",
+              def: def.node.opacity
+            });
+          }))
         .call(drag(simulation));
       link = link
         .data(links, d => [d.source, d.target])
         .join(enter => enter.append("line")
           .attr("pointer-events", "none")
-          .attr("stroke", linkColour)
-          .attr("stroke-width", linkWidth)
-          .attr("opacity", linkOpacity));
+          .attr("stroke", (d, i) => {
+            return attrDefault({
+              data: d,
+              idx: i,
+              key: "colour",
+              def: def.link.colour
+            });
+          })
+          .attr("stroke-width", (d, i) => {
+            return attrDefault({
+              data: d,
+              idx: i,
+              key: "width",
+              def: def.link.width
+            });
+          })
+          .attr("opacity", (d, i) => {
+            return attrDefault({
+              data: d,
+              idx: i,
+              key: "opacity",
+              def: def.link.opacity
+            });
+          }));
       text = text
         .data(nodes, d => d.id)
         .join(enter => enter.append("text")
           .text(nodeLabel)
           .attr("pointer-events", "none")
-          .attr("font-size", textFontSize)
-          .attr("font-weight", textFontWeight)
-          .attr("visibility", textVisibility));
+          .attr("font-size", (d, i) => {
+            return attrDefault({
+              data: d,
+              idx: i,
+              key: "size",
+              def: def.text.size
+            });
+          })
+          .attr("font-weight", (d, i) => {
+            return attrDefault({
+              data: d,
+              idx: i,
+              key: "weight",
+              def: def.text.weight
+            });
+          })
+          .attr("visibility", (d, i) => {
+            return attrDefault({
+              data: d,
+              idx: i,
+              key: "visibility",
+              def: def.text.visibility
+            });
+          }));
       // Define the node label function
       function nodeLabel(d, i) {
         if (d?.label === undefined) { return d.id; }
@@ -259,77 +393,188 @@ function generateChart(_data) {
       let idxLink = new Object();
       links.forEach(l => idxLink[`${l.source}|${l.target}`] = true);
       node.on("mouseover", nodeMouseOver).on("mouseout", nodeMouseOut);
-      function isConnected(a, b) {
-        let c0 = idxLink[`${a.id}|${b.id}`];
-        let c1 = idxLink[`${b.id}|${a.id}`];
-        return (c0 || c1);
-      }
-      function nmoNodeFill(o, j, d) {
-        if (d === o) { return "red"; }
-        if (isConnected(d, o)) { return "darkorange"; }
-        return nodeFill(o, j);
-      }
-      function nmoNodeOpacity(o, j, d) {
-        let n0 = nodeOpacity(o, j);
-        if (isConnected(d, o) || d === o) { return n0; }
-        return 0.15 * n0;
-      }
-      function nmoNodeStroke(o, j, d) {
-        if (isConnected(d, o) || d === o) { return "royalblue"; }
-        return nodeStroke(o, j);
-      }
-      function nmoNodeStrokeWidth(o, j, d) { return nodeStrokeWidth(o, j); }
-      function nmoNodeRadius(o, j, d) { return nodeRadius(o, j); }
-      function nmoLinkColour(o, j, d) {
-        if (o.source.id === d.id || o.target.id === d.id) {
-          return "royalblue";
-        }
-        return linkColour(o, j);
-      }
-      function nmoLinkWidth(o, j, d) { return linkWidth(o, j); }
-      // ^ The above five are currently effectively dummy functions, but are
-      //   left here to demonstrate potential control.
-      function nmoLinkOpacity(o, j, d) {
-        let l0 = linkOpacity(o, j);
-        let c0 = (o.source.id === d.id) || (o.target.id === d.id);
-        if (c0) { return l0; }
-        return 0.15 * l0;
-      }
-      function nmoTextFontSize(o, j, d) { return textFontSize(o, j); }
-      // ^ This one's also a dummy at this stage.
-      function nmoTextFontWeight(o, j, d) {
-        if (d === o) { return "bold"; }
-        return textFontWeight(o, j);
-      }
-      function nmoTextVisibility(o, j, d) {
-        if (isConnected(d, o) || d === o) { return "visible"; }
-        return textVisibility(o, j);
-      }
       function nodeMouseOver(e, d) {
-        node.attr("stroke", (o, j) => nmoNodeStroke(o, j, d))
-            .attr("stroke-width", (o, j) => nmoNodeStrokeWidth(o, j, d))
-            .attr("fill", (o, j) => nmoNodeFill(o, j, d))
-            .attr("r", (o, j) => nmoNodeRadius(o, j, d))
-            .attr("opacity", (o, j) => nmoNodeOpacity(o, j, d));
-        link.attr("stroke", (o, j) => nmoLinkColour(o, j, d))
-            .attr("stroke-width", (o, j) => nmoLinkWidth(o, j, d))
-            .attr("opacity", (o, j) => nmoLinkOpacity(o, j, d));
-        text.attr("font-size", (o, j) => nmoTextFontSize(o, j, d))
-            .attr("font-weight", (o, j) => nmoTextFontWeight(o, j, d))
-            .attr("visibility", (o, j) => nmoTextVisibility(o, j, d));
+        node.attr("stroke", (o, j) => {
+              return nmoNodeStroke({
+                data: o,
+                idx: j,
+                orig: d,
+                def: def.node.stroke.colour,
+                idxLink: idxLink
+              });
+            })
+            .attr("stroke-width", (o, j) => {
+              return nmoNodeStrokeWidth({
+                data: o,
+                idx: j,
+                orig: d,
+                def: def.node.stroke.width,
+                idxLink: idxLink
+              });
+            })
+            .attr("fill", (o, j) => {
+              return nmoNodeFill({
+                data: o,
+                idx: j,
+                orig: d,
+                def: def.node.fill,
+                idxLink: idxLink
+              });
+            })
+            .attr("r", (o, j) => {
+              return nmoNodeRadius({
+                data: o,
+                idx: j,
+                orig: d,
+                def: def.node.radius,
+                idxLink: idxLink
+              });
+            })
+            .attr("opacity", (o, j) => {
+              return nmoNodeOpacity({
+                data: o,
+                idx: j,
+                orig: d,
+                def: def.node.opacity,
+                idxLink: idxLink
+              });
+            });
+        link.attr("stroke", (o, j) => {
+              return nmoLinkColour({
+                data: o,
+                idx: j,
+                orig: d,
+                def: def.link.colour,
+                idxLink: idxLink
+              });
+            })
+            .attr("stroke-width", (o, j) => {
+              return nmoLinkWidth({
+                data: o,
+                idx: j,
+                orig: d,
+                def: def.link.width,
+                idxLink: idxLink
+              });
+            })
+            .attr("opacity", (o, j) => {
+              return nmoLinkOpacity({
+                data: o,
+                idx: j,
+                orig: d,
+                def: def.link.opacity,
+                idxLink: idxLink
+              });
+            });
+        text.attr("font-size", (o, j) => {
+              return nmoTextFontSize({
+                data: o,
+                idx: j,
+                orig: d,
+                def: def.text.size,
+                idxLink: idxLink
+              });
+            })
+            .attr("font-weight", (o, j) => {
+              return nmoTextFontWeight({
+                data: o,
+                idx: j,
+                orig: d,
+                def: def.text.weight,
+                idxLink: idxLink
+              });
+            })
+            .attr("visibility", (o, j) => {
+              return nmoTextVisibility({
+                data: o,
+                idx: j,
+                orig: d,
+                def: def.text.visibility,
+                idxLink: idxLink
+              });
+            });
       }
       function nodeMouseOut(e, d) {
-        node.attr("stroke", nodeStroke)
-            .attr("stroke-width", nodeStrokeWidth)
-            .attr("fill", nodeFill)
-            .attr("r", nodeRadius)
-            .attr("opacity", nodeOpacity);
-        link.attr("stroke", linkColour)
-            .attr("stroke-width", linkWidth)
-            .attr("opacity", linkOpacity);
-        text.attr("font-size", textFontSize)
-            .attr("font-weight", textFontWeight)
-            .attr("visibility", textVisibility);
+        node.attr("stroke", (d, i) => {
+              return attrDefault({
+                data: d,
+                idx: i,
+                key: "stroke",
+                def: def.node.stroke.colour});
+            })
+            .attr("stroke-width", (d, i) => {
+              return attrDefault({
+                data: d,
+                idx: i,
+                key: "strokeWidth",
+                def: def.node.stroke.width
+              });
+            })
+            .attr("fill", (d, i) => {
+              return attrDefault({
+                data: d,
+                idx: i,
+                key: "fill",
+                def: def.node.fill});
+            })
+            .attr("r", (d, i) => {
+              return attrDefault({
+                data: d,
+                idx: i,
+                key: "radius",
+                def: def.node.radius});
+            })
+            .attr("opacity", (d, i) => {
+              return attrDefault({
+                data: d,
+                idx: i,
+                key: "opacity",
+                def: def.node.opacity});
+            });
+        link.attr("stroke", (d, i) => {
+              return attrDefault({
+                data: d,
+                idx: i,
+                key: "colour",
+                def: def.link.colour
+              })
+            })
+            .attr("stroke-width", (d, i) => {
+              return attrDefault({
+                data: d,
+                idx: i,
+                key: "width",
+                def: def.link.width});
+            })
+            .attr("opacity", (d, i) => {
+              return attrDefault({
+                data: d,
+                idx: i,
+                key: "opacity",
+                def: def.link.opacity});
+            });
+        text.attr("font-size", (d, i) => {
+              return attrDefault({
+                data: d,
+                idx: i,
+                key: "size",
+                def: def.text.size});
+            })
+            .attr("font-weight", (d, i) => {
+              return attrDefault({
+                data: d,
+                idx: i,
+                key: "weight",
+                def: def.text.weight
+              });
+            })
+            .attr("visibility", (d, i) => {
+              return attrDefault({
+                data: d,
+                idx: i,
+                key: "visibility",
+                def: def.text.visibility});
+            });
       }
       // Reset the simulation
       simulation.stop();
