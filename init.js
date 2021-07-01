@@ -1,16 +1,3 @@
-// -- Operations -- //
-
-
-let fb = document.querySelector("#inputKeggIdFeedback");
-fb.innerHTML = "Please wait, loading attachments....";
-
-// Initialise CouchAttachments instance
-let couch = new CouchAttachments();
-
-// Fetch attachments list, operate on list, then initialise view
-couch.fetchList().then(onFetch).then(init);
-
-
 // -- Function definitions -- //
 
 
@@ -42,6 +29,18 @@ async function unzip(data) {
 function init(data) {
   for (let k in data) API.createData(k, data[k]);
   API.createData("pingSimulation", true);  // Generate the chart on load
-  fb.innerHTML = '';
+  _fb.clearMessage();
   return;
 };
+
+
+// -- Operations -- //
+
+
+_fb.message("Please wait, loading attachments....");
+
+// Initialise CouchAttachments instance
+let couch = new CouchAttachments();
+
+// Fetch attachments list, operate on list, then initialise view
+couch.fetchList().then(onFetch).then(init);
