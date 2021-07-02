@@ -1,6 +1,80 @@
 // Cell for displaying a table of the current visualised IDs
 
 
+// -- Class definitions -- //
+
+
+class DivTable {
+  constructor(width) {
+    this.table = document.createElement("div");
+    this.table.classList.add("table");
+    this.width = width;
+    this.rows = [];
+  };
+  _cell(content) {
+    let cell = document.createElement("div");
+    cell.classList.add("table-cell");
+    if (content !== undefined) cell.innerHTML = content;
+    return cell;
+  };
+  _row(content) {
+    let row = {content: content, element: document.createElement("div")};
+    row.element.classList.add("table-row");
+    if (content !== undefined) {
+      content.forEach(c => row.element.appendChild(this._cell(c)));
+    };
+    return row;
+  };
+  _header(content) {
+    let header = this._row(content);
+    header.element.classList.add("table-header");
+    return header;
+  };
+  addHeader(content) {
+    if (content.length !== this.width) {
+      throw new Error("Content length does not match table width");
+    };
+    this.header = this._header(content);
+    this.table.appendChild(this.header.element);
+  };
+  addRow(content) {
+    if (content.length !== this.width) {
+      throw new Error("Content length does not match table width");
+    };
+    this.rows.push(this._row(content));
+    this.table.appendChild(this.rows[this.rows.length - 1].element);
+  };
+  attachTo(node) {
+    node.appendChild(this.table);
+  };
+};
+
+
+// -- Function definitions -- //
+
+
+// Helper to generate an anchor, according to spec
+function makeAnchor({href, ihtml}) {
+  let a = document.createElement("a");
+  a.setAttribute("rel", "nofollow noopener noreferrer");
+  a.setAttribute("target", "_blank");
+  a.setAttribute("href", href);
+  a.innerHTML = ihtml;
+  return a;
+};
+
+// Shorthand to make a KEGG Compound URI anchor
+function keggCompoundAnchor(id) {
+  return makeAnchor({
+    href: `https://www.kegg.jp/dbget-bin/www_bget?cpd:${id}`,
+    ihtml: id,
+  });
+};
+
+
+// -- Operations -- //
+
+
 // Find the sink
 let sink = document.querySelector("#sinkIdVis");
 
@@ -12,98 +86,18 @@ let crt = API.getData("idVisCurrent").resurrect();
 let ids = crt.map(c => c.id).sort();
 let kcs = ids.map(i => klc.filter(k => k.id === i)[0]);
 
-// Generate the HTML table
-let table = divTable();
+// Create the output table
+let table = new DivTable(2);
+table.addHeader(["KEGG Compound ID", "Alias(es)"]);
 
-// Initialise the header
-let header = divTableHeader();
-
-// Generate the header contents
-let hc0 = divTableCell("KEGG Compound ID");
-let hc1 = divTableCell("Alias(es)");
-
-// Append header contents to the header
-header.append(hc0);
-header.append(hc1);
-
-// Append the header to the table
-table.append(header);
-
-// Reduce the KEGG Compound shortlist into the table
-table = kcs.reduce(reduceKcs, table);
+// Add the KEGG Compound shortlist data
+kcs.forEach(k => {
+  table.addRow([
+    keggCompoundAnchor(k.id).outerHTML,
+    k.name.slice().sort().join(", ")
+  ]);
+});
 
 // Empty and refresh the sink
 sink.innerHTML = '';
-sink.append(table);
-
-
-// -- Function definitions -- //
-
-// Reduce the KEGG Compound ID shortlist into the table
-// - Includes links to KEGG Compound
-function reduceKcs(a, c) {
-  let row = divTableRow();
-  let c0 = divTableCell(keggCompoundAnchor(c.id).outerHTML);
-  let c1 = divTableCell(c.name.slice().sort().join(", "));
-  // row.addEventListener("mouseover", rowHoverApi);
-  row.append(c0);
-  row.append(c1);
-  a.append(row);
-  return a;
-}
-
-// Helper to generate a div table
-function divTable(ihtml) {
-  let table = document.createElement("div");
-  table.classList.add("divTable");
-  if (ihtml !== undefined) { table.innerHTML = ihtml; }
-  return table;
-}
-
-// Helper to generate a div table row
-function divTableRow(ihtml) {
-  let row = document.createElement("div");
-  row.classList.add("divTableRow");
-  if (ihtml !== undefined) { row.innerHTML = ihtml; }
-  return row;
-}
-
-// Helper to generate a div table header row
-function divTableHeader(ihtml) {
-  let header = divTableRow(ihtml);
-  header.classList.add("divTableHeader");
-  return header;
-}
-
-// Helper to generate a div table cell
-function divTableCell(ihtml) {
-  let cell = document.createElement("div");
-  cell.classList.add("divTableCell");
-  if (ihtml !== undefined) { cell.innerHTML = ihtml; }
-  return cell;
-}
-
-// Helper to generate an anchor, according to spec
-function makeAnchor({href, ihtml}) {
-  let a = document.createElement("a");
-  a.setAttribute("rel", "nofollow noopener noreferrer");
-  a.setAttribute("target", "_blank");
-  a.setAttribute("href", href);
-  a.innerHTML = ihtml;
-  return a;
-}
-
-// Shorthand to make a KEGG Compound URI anchor
-function keggCompoundAnchor(id) {
-  return makeAnchor({
-    href: `https://www.kegg.jp/dbget-bin/www_bget?cpd:${id}`,
-    ihtml: id,
-  });
-}
-
-// Might use this in future....
-function rowHoverApi(event) {
-  let id = event.currentTarget.firstChild.firstChild.innerHTML;
-  API.createData("idHovered", id);
-  return;
-}
+table.attachTo(sink);
